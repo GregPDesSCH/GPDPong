@@ -37,9 +37,6 @@ public enum NumberOfPlayers { ONE_PLAYER, TWO_PLAYER };
 public enum OpponentDifficulty { EASY, MEDIUM, HARD };
 
 
-/* 
-    
-*/
 public class ApplicationManager : MonoBehaviour
 {
     // Singleton Instance (only need on application manager)
@@ -112,13 +109,19 @@ public class ApplicationManager : MonoBehaviour
     // Load the gameplay scene.
     public void LoadGameScene()
     {
-        SceneManager.LoadScene("Pong");
+        if (SceneManager.GetActiveScene().name == "Title Screen")
+            SceneManager.LoadScene("Pong");
+        else
+            SceneManager.LoadScene("Pong (Standalone)");
     }
 
     // Load the menu scene
     public void LoadMenuScene()
     {
-        SceneManager.LoadScene("Title Screen");
+        if (SceneManager.GetActiveScene().name == "Pong")
+            SceneManager.LoadScene("Title Screen");
+        else
+            SceneManager.LoadScene("Title Screen (Standalone)");
     }
 
     // Open my personal website in an external window with the user's default Internet browser.

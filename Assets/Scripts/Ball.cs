@@ -4,7 +4,7 @@
     By Gregory Desrosiers
     University of Waterloo, Software Engineering 2019
 
-    Ball
+    Ball Class
 
     This is the behavior of the ball that the paddles must hit
     for it to bounce back and forth between them as the original
@@ -12,6 +12,9 @@
 
     Development Dates: June 2016 - August 2016
     File Name: Ball.cs
+
+    Version 1.1 Update: September 25, 2016 - September 28, 2016
+    - Three different ball speed limits have been added.
 
     Special Thanks to the staff who put the tutorials together on
     Unity Technologies and both Unity Forums and Unity Answers
@@ -31,10 +34,28 @@ public class Ball : MonoBehaviour
 {
 	private Rigidbody ball;
 
-	private const float MAX_DX = 10f;
-	private const float MAX_DY = 5f;
-    private const float MIN_DX = 1f;
-	private bool gameOver;
+    /* Speed Component limits (those simply say what's the minimum and maximum speed in each axis.) */
+    private const float minimumXSpeed = 1f;
+
+    // Easy Mode
+    private const float maximumXSpeedInEasyMode = 10f;
+    private const float maximumYSpeedInEasyMode = 5f;
+
+    // Medium Mode
+    private const float maximumXSpeedInMediumMode = 12.5f;
+    private const float maximumYSpeedInMediumMode = 6.25f;
+
+    // Hard Mode
+    private const float maximumXSpeedInHardMode = 15f;
+    private const float maximumYSpeedInHardMode = 7.5f;
+
+
+    // Generic max speed component limits
+    private float maximumXSpeed = 0.0f;
+    private float maximumYSpeed = 0.0f;
+
+
+    // Movement step per frame
     private Vector3 speedVector;
 
     
@@ -43,7 +64,35 @@ public class Ball : MonoBehaviour
 	// Use this for initialization
 	void Start () 
 	{
-		StartCoroutine(pause());
+        ball = GetComponent<Rigidbody>();
+
+
+        // Set the speed limits based on difficulty and number of players. 
+        // (for now, in two-player mode, the max X and Y speed are set in easy mode)
+
+        if (ApplicationManager.applicationManager.numberOfPlayersInGame == NumberOfPlayers.ONE_PLAYER &&
+            ApplicationManager.applicationManager.opponentDifficultyLevel == OpponentDifficulty.EASY ||
+            ApplicationManager.applicationManager.numberOfPlayersInGame == NumberOfPlayers.TWO_PLAYER)
+        {
+            maximumXSpeed = maximumXSpeedInEasyMode;
+            maximumYSpeed = maximumYSpeedInEasyMode;
+        }
+        else if (ApplicationManager.applicationManager.numberOfPlayersInGame == NumberOfPlayers.ONE_PLAYER &&
+            ApplicationManager.applicationManager.opponentDifficultyLevel == OpponentDifficulty.MEDIUM)
+        {
+            maximumXSpeed = maximumXSpeedInMediumMode;
+            maximumYSpeed = maximumYSpeedInMediumMode;
+        }
+        else
+        {
+            maximumXSpeed = maximumXSpeedInHardMode;
+            maximumYSpeed = maximumYSpeedInHardMode;
+        }
+
+
+
+
+        StartCoroutine(pause());
         speedVector = new Vector3(0f, 0f, 0f);
         resetMovementComponents();
     }
@@ -52,15 +101,6 @@ public class Ball : MonoBehaviour
     // because in Pong, the ball decides which direction and speed the ball moves at first.
 	void resetMovementComponents()
 	{
-        /* 
-           I'm not frantically sure why I'm retrieving the rigidbody component every time I reset the position
-           of the ball and I'm accessing the position from the parent of the component when I can just 
-           simply use gameObject.
-
-           I think the best coding practice is to have the rigidbody component retrieved in the Start
-           function and just use the same thing.
-        */
-		ball = GetComponent<Rigidbody>();
 		ball.transform.transform.position = new Vector3(0, 0.5f, 0);
 
 	
@@ -74,7 +114,7 @@ public class Ball : MonoBehaviour
 		       (randomizationFactorY > -0.15f && randomizationFactorY > 0.15f))
 			randomizationFactorY = ((float)Random.value) - 0.32f;
 
-        speedVector = new Vector3(randomizationFactorX * MAX_DX, 0f, randomizationFactorY * MAX_DY);
+        speedVector = new Vector3(randomizationFactorX * maximumXSpeed, 0f, randomizationFactorY * maximumYSpeed);
 
 	}
 
@@ -110,12 +150,12 @@ public class Ball : MonoBehaviour
 
             float speedX = speedVector.x, speedZ = 0.0f;
 
-            if (speedX < MIN_DX && speedX > -MIN_DX)
+            if (speedX < minimumXSpeed && speedX > -minimumXSpeed)
             {
                 if (speedX >= 0)
-                    speedX = MIN_DX;
+                    speedX = minimumXSpeed;
                 else
-                    speedX = -MIN_DX;
+                    speedX = -minimumXSpeed;
             }
 
             /* 
@@ -123,11 +163,17 @@ public class Ball : MonoBehaviour
             */
             if (other.gameObject.CompareTag("Player") || other.gameObject.CompareTag("Opponent"))
             {
+                GameController.gameController.ballHitsPaddleAudioSource.pitch =
+                    Random.Range(1.0f - GameController.pitchVariance, 1.0f + GameController.pitchVariance);
                 GameController.gameController.ballHitsPaddleAudioSource.Play();
                 speedZ = ((Paddle)other.gameObject.GetComponent<MonoBehaviour>()).getSpeedVector().y / (Time.deltaTime * 2.5f);
             }
             else
+            {
+                GameController.gameController.ballHitsWallAudioSource.pitch =
+                    Random.Range(1.0f - GameController.pitchVariance, 1.0f + GameController.pitchVariance);
                 GameController.gameController.ballHitsWallAudioSource.Play();
+            }
 
             speedVector = new Vector3(speedX, 0f, speedVector.z + speedZ);
 
@@ -138,6 +184,8 @@ public class Ball : MonoBehaviour
         else if (other.gameObject.CompareTag("Player 1 Goal") || other.gameObject.CompareTag("Player 2 Goal") || 
             other.gameObject.CompareTag("Player's Goal") || other.gameObject.CompareTag("Opponent's Goal"))
         {
+            GameController.gameController.resetPaddlePositions();
+
             if (other.gameObject.CompareTag("Player 1 Goal") || other.gameObject.CompareTag("Player's Goal")) 
                 // We hit an invisible region corresponding to the player's goal zone
             {
@@ -172,11 +220,18 @@ public class Ball : MonoBehaviour
 
             if (GameController.gameController.isTheGameOn())
             {
-                GameController.gameController.goalAudioSource.Play();
+                playRandomGoalSound();
                 StartCoroutine(pause());
                 resetMovementComponents();
             }
         }
+    }
+
+    void playRandomGoalSound()
+    {
+        GameController.gameController.goalAudioSource.pitch = 
+            Random.Range(1.0f - GameController.pitchVariance, 1.0f + GameController.pitchVariance);
+        GameController.gameController.goalAudioSource.Play();
     }
 
     // A helper function to get the ball's speed vector.

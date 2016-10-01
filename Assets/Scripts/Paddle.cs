@@ -15,6 +15,9 @@
     Development Dates: June 2016 - August 2016
     File Name: Paddle.cs
 
+    Version 1.1 Update: September 25, 2016 - September 28, 2016
+    - Resetting the position is now in its own function.
+
     Special Thanks to the staff who put the tutorials together on
     Unity Technologies and both Unity Forums and Unity Answers
     moderators for giving me the flexibility to ask various questions
@@ -69,15 +72,20 @@ public class Paddle : MonoBehaviour
         return speedVector;
     }
 
+    public void resetPosition()
+    {
+        transform.position = new Vector3(
+            transform.position.x,
+            transform.position.y,
+            0.0f);
+    }
+
     // Reset the paddle's position and score field when the user wants to restart
     // the match or we have a game over.
     public void reset()
     {
         Score = 0;
 
-        transform.position = new Vector3(
-            transform.position.x, 
-            transform.position.y, 
-            0.0f);
+        resetPosition();
     }
 }

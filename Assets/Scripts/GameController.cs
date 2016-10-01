@@ -111,6 +111,10 @@ public class GameController : MonoBehaviour
     AudioMixer gameAudioMixer;
 
 
+    // Constants
+    public const float pitchVariance = 0.15f;
+
+
     // Use this for initialization
     void Start () 
 	{
@@ -283,6 +287,7 @@ public class GameController : MonoBehaviour
         {
             disableGame();
             winnerPanel.SetActive(true);
+            goalAudioSource.pitch = 1.0f;
             StartCoroutine(PlayWinnerSound());
 
             if (ApplicationManager.applicationManager.numberOfPlayersInGame == NumberOfPlayers.ONE_PLAYER)
@@ -309,6 +314,12 @@ public class GameController : MonoBehaviour
             mainCameraPivot.transform.rotation = Quaternion.Euler (new Vector3(- maximumTiltAngle * (pongBall.transform.position.z / displacementFromCentreOfBoard), 0.0f));
 	}
 
+
+    public void resetPaddlePositions()
+    {
+        player1Paddle.resetPosition();
+        player2Paddle.resetPosition();
+    }
 
     // Update Player 1's goals and reset the camera.
 	public void incrementPlayerGoals()
